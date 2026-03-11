@@ -1,124 +1,92 @@
-# Job Match Radar (Chrome Extension)
+# Job Match Radar
 
-A Chrome Extension (Manifest V3) for scoring job pages against your own weighted keyword bank, highlighting important hiring signals (visa, relocation, remote/hybrid), and accelerating decision-making while browsing roles.
+Open-source Chrome Extension (Manifest V3) for measuring how relevant a page is against your custom weighted keyword model.
 
-## Why This Exists
+It started as a job-search assistant, but the scoring engine is generic enough for any "is this content relevant to my criteria?" workflow.
 
-Job listings are noisy. You may scan dozens of pages where only a few are relevant to your technical profile.
+## Open-Source Status
 
-This extension helps by:
+- License: MIT (`LICENSE`)
+- Safe-to-share repo defaults: no personal backup exports, private keys, or package artifacts are committed (`.gitignore`)
+- Contribution-friendly structure: popup for fast actions, settings for deep configuration, background/content scripts for scoring pipeline
 
-- Maintaining a structured keyword taxonomy (groups + individual keyword weights)
-- Scoring page content with additive weighted logic
-- Surfacing critical phrases like visa sponsorship and relocation
-- Showing score/grade signals quickly in popup, badge, and optional analytics bar
-- Supporting AI-assisted keyword suggestions from current pages
+## Problem It Solves
 
-## Core Idea
+When you scan large volumes of content, most pages are only partially relevant.
 
-Build a "personal job relevance radar" that can be tuned over time:
+This extension lets you define what "relevant" means with:
 
-- Your taxonomy evolves: groups and phrases are editable
-- Your scoring thresholds are configurable
-- Your browsing context is controlled with URL allow patterns
-- Your provider stack (Gemini/GitHub Models/custom) is configurable
+- keyword groups and weights
+- phrase signals and weights
+- score thresholds and grades
+- optional LLM-assisted keyword expansion
 
-## Current Feature Set
+So instead of guessing, you get a consistent, explainable score.
 
-### 1) Weighted Keyword Bank
+## Core Capabilities
 
-- Create and edit keyword groups
-- Assign group-level weights
-- Assign individual keyword weights
-- Bulk keyword input support (comma/newline/semicolon/pipe)
-- Import keywords from file
+### Weighted relevance model
 
-### 2) Phrase Intelligence
+- Group-level and keyword-level weights
+- Additive weighted scoring
+- Custom grade thresholds (`A`, `B`, `C`)
 
-Default phrase categories include:
+### Signal extraction
 
-- `visa sponsorship`
-- `relocation assistance`
-- `work authorization`
-- `remote` / `hybrid`
+- Phrase detection for special intent/situations (visa, relocation, work mode, etc.)
+- Tech-term scanning from current page
 
-You can add/edit/remove phrase rules and weights.
+### Fast UX + deep UX
 
-### 3) Scoring and Grades
+- Popup: quick actions (`rescan`, `LLM suggest`, quick edits)
+- Settings: structured, collapsible configuration sections
 
-- Additive weighted scoring model
-- Grade thresholds configurable (`A/B/C` cutoffs)
-- Badge display mode: `score`, `grade`, or `off`
-- Alert threshold configurable
+### Data lifecycle
 
-### 4) Popup (Quick Actions)
+- Export backup JSON
+- Restore from file picker
+- Reset all (with irreversible warning)
 
-Designed for speed while browsing:
+### Runtime control
 
-- Quick keyword/group edits
-- Scan page technical terms
-- Rescan current page
-- LLM suggest keywords (from current page)
-- Quick threshold + badge toggles
-- Open full settings page
+- Active URL allow-patterns (wildcard support)
+- Badge mode (`score`, `grade`, `off`)
+- Optional top analytics bar
 
-### 5) Settings Page (Deep Configuration)
+## How Scoring Works
 
-Organized into collapsible sections:
+High-level formula:
 
-- Display and Alerts
-- LLM Provider setup
-- Keyword Groups
-- Important Phrases
-- Backup and Restore
+`keyword_matches * (group_weight + keyword_weight)`
 
-Includes top "Start Here Guide" for usage guidance.
+Then:
 
-### 6) Backup / Restore / Reset
+- aggregate total score
+- map score to grade using configurable thresholds
+- include phrase-category signals for context
 
-- Export full configuration JSON
-- Restore from backup file (button-triggered file picker)
-- Reset all with confirmation warning
-
-Reset clears stored keywords, groups, phrases, scan history, and LLM settings, then restores default scoring and display settings.
-
-### 7) URL Activation Control
-
-The extension runs only on configured URL patterns (`allowedUrlPatterns`), even though content scripts are declared on `<all_urls>`.
-
-### 8) LLM Provider Options
-
-Supported setup profiles:
-
-- GitHub Models
-- Google Gemini
-- OpenAI-compatible custom endpoint
-
-## Architecture
+## Architecture Overview
 
 ### `manifest.json`
 
-Defines:
-
-- MV3 service worker (`background.js`)
-- Popup (`popup.html`)
-- Options page (`options.html`)
-- Content script (`content-script.js`)
-- Required permissions and host permissions
+- MV3 setup
+- service worker: `background.js`
+- popup: `popup.html`
+- options page: `options.html`
+- content script: `content-script.js`
 
 ### `background.js`
 
-Main orchestration layer:
+Core orchestration and logic:
 
-- Normalizes stored state
-- Computes scores and grades
-- Handles runtime messages
-- Applies badge values
-- Stores history and analysis snapshots
-- Handles provider-specific LLM requests
-- Enforces URL allow-pattern checks
+- data normalization/defaulting
+- scoring pipeline
+- badge updates
+- LLM provider adapters
+- URL allow-pattern checks
+- sync storage persistence
 
-Primary message actions:
+Main runtime actions:
 
 - `analyzePage`
 - `scanTechKeywordsFromActiveTab`
@@ -129,78 +97,98 @@ Primary message actions:
 
 ### `content-script.js`
 
-- Reads on-page text context
-- Runs/refreshes analysis flow
-- Renders optional top analytics bar
-- Handles safe cleanup and stale context edge cases
+- extracts page text context
+- updates optional analytics bar
+- triggers rescans safely
+- handles SPA/stale-context edge cases
 
-### `popup.html` / `popup.js` / `styles.css`
+### `popup.*`
 
-Fast interaction surface for in-the-moment actions while browsing job pages.
+Quick, in-flow controls while browsing.
 
-### `options.html` / `options.js` / `options.css`
+### `options.*`
 
-Full management UI for durable configuration, provider setup, and data lifecycle controls.
+Full management surface with collapsible settings sections.
 
-## Storage Model
+## Privacy and Data Handling
 
-Uses `chrome.storage.sync` with these keys:
+- User configuration/state is stored in `chrome.storage.sync`
+- Exported backup JSON can contain your custom keywords/settings
+- Backup files are intentionally ignored in Git (`.gitignore`)
+- No API keys are hardcoded in source
 
-- `groups`
-- `phrases`
-- `settings`
-- `scanHistory`
-- `lastAnalysis`
+## Other Practical Use Cases
 
-## Scoring Model (High-Level)
+Beyond job matching, this extension can be adapted for many relevance workflows:
 
-For each keyword match:
+### Research triage
 
-`match_count * (group_weight + keyword_weight)`
+- Score articles/papers/news pages against your topic taxonomy
+- Quickly decide "read now" vs "skip"
 
-Phrase scores are tracked by category and contribute to insighting and decision signals.
+### Procurement and vendor screening
 
-## Setup (Development)
+- Evaluate product/service pages against required capabilities
+- Track compliance, security, or integration terms
 
-1. Clone/download this folder.
-2. Open `chrome://extensions`.
-3. Enable Developer mode.
-4. Click `Load unpacked`.
-5. Select this folder (`extension-1.0`).
+### Security and policy review
 
-## Packaging for Distribution
+- Detect expected policy language on third-party docs/pages
+- Flag missing or weak mandatory terms
+
+### Learning path curation
+
+- Rank tutorials/courses by your skill goals
+- Highlight pages that match your current learning stack
+
+### Content operations and editorial QA
+
+- Check if pages include required brand/SEO/legal terms
+- Score draft relevance before publication
+
+### Sales and lead qualification
+
+- Evaluate prospect sites by industry/tech signals
+- Prioritize leads matching your ideal profile
+
+### Grant/funding opportunity filtering
+
+- Score calls/RFP pages against your organization capabilities
+- Surface opportunities with strongest fit first
+
+### Competitive intelligence
+
+- Track competitor pages/releases for strategic keywords
+- Compare relevance patterns over time
+
+## Getting Started (Local Development)
+
+1. Open `chrome://extensions`
+2. Enable Developer mode
+3. Click `Load unpacked`
+4. Select this project directory
+
+## Packaging
 
 Use Chrome's native pack flow:
 
-1. Open `chrome://extensions`.
-2. Click `Pack extension`.
-3. Extension root directory: this project folder.
-4. Private key:
-- Leave empty first time to generate `.pem`
-- Reuse the same `.pem` for future updates
+1. Open `chrome://extensions`
+2. Click `Pack extension`
+3. Select extension root directory
+4. Reuse the same `.pem` across versions
 
-## Important Note About `create.bat`
+## Notes
 
-`create.bat` is a legacy bootstrap script that writes starter boilerplate files.
+- `create.bat` is a legacy scaffold generator, not a pack/build tool.
+- Do not run it on this repo unless you intentionally want to regenerate boilerplate.
 
-- It is **not** a packaging script.
-- Running it can overwrite current project files.
+## Roadmap Ideas
 
-Avoid using it for build or release tasks.
-
-## Known Constraints
-
-- Extension behavior depends on allowed URL patterns.
-- LLM suggestions require valid endpoint/key/model configuration.
-- Browser permission policies may restrict script behavior on some pages.
-
-## Suggested Next Improvements
-
-- Add test coverage for scoring and normalization functions.
-- Add import schema validation with clearer restore error reporting.
-- Add optional multi-step reset confirmation (e.g., type `RESET`).
-- Add release packaging script that safely zips source without overwriting files.
+- Unit tests for scoring and normalization
+- Optional typed reset confirmation (`type RESET`)
+- Rich backup validation and migration assistant
+- Optional CSV export for score history
 
 ## License
 
-No explicit license file is included yet. Add a `LICENSE` file before open-source distribution.
+MIT - see `LICENSE`.

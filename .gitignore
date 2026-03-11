@@ -1,0 +1,18 @@
+# Build/package outputs
+*.crx
+*.pem
+*.zip
+
+# Local backups/exports that may contain personal configuration
+keyword-bank.json
+keyword-bank-*.json
+*.backup.json
+
+# Env and local secrets
+.env
+.env.*
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
